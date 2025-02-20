@@ -5,7 +5,7 @@ import requests
 from dataclasses import dataclass
 import sys
 from tabulate import tabulate
-from flask import Flask
+from flask import Flask, Response
 import time
 
 # Classes and functions
@@ -55,6 +55,11 @@ def flask_stop():
     global voice_changer_started
     voice_changer_started = False
     return {"started": voice_changer_started}, 200
+
+@app.route("/inject.js")
+def flask_js_agent():
+    with open("dist/inject.js", "r") as f:
+        return Response(f.read(), mimetype="text/javascript")
 
 @app.after_request
 def add_cors_headers(response):

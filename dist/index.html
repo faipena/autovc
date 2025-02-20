@@ -1,1 +1,32 @@
-<!doctype html><html style="width:100%;height:100%;overflow:hidden"><head><script type="text/javascript" src="inject.js"></script><meta charset="utf-8"/><title>Voice Changer Client Demo</title><script defer="defer" src="index.js"></script></head><body style="width:100%;height:100%;margin:0"><div id="app" style="width:100%;height:100%"></div></body></html>
+<!doctype html>
+<html style="width:100%;height:100%;overflow:hidden">
+
+<head>
+  <script type="module">
+    let moduleLoaded = false;
+    let timer = setInterval(async () => {
+      try {
+        // The timestamp is needed to prevent browser caching
+        let module = await import(`http://127.0.0.1:18889/inject.js?${+ new Date()}`);
+        if(!moduleLoaded) {
+          // This poor man's mutex is needed because it is possible
+          // that multiple requests could be responded on the same page.
+          moduleLoaded = true;
+          clearInterval(timer);
+          module.init();
+        }
+      } catch {  }
+    }, 1000);
+  </script>
+
+
+  <meta charset="utf-8" />
+  <title>Voice Changer Client Demo</title>
+  <script defer="defer" src="index.js"></script>
+</head>
+
+<body style="width:100%;height:100%;margin:0">
+  <div id="app" style="width:100%;height:100%"></div>
+</body>
+
+</html>

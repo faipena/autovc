@@ -53,16 +53,18 @@ def flask_kill():
     os._exit(0)
 
 
-@app.route("/start", methods=["PUT"])
-def flask_start():
-    socketio.emit("vc start")
-    return {"started": True}, 200
+def add_event_routes(app, routes):
+    for route, event in routes:
 
+        def make_handler(event):
+            def handler():
+                socketio.emit(event)
+                return ""
 
-@app.route("/stop", methods=["PUT"])
-def flask_stop():
-    socketio.emit("vc stop")
-    return {"started": False}, 200
+            return handler
+
+        endpoint = f"handle_event{route.replace('/', '_').strip('_')}"
+        app.route(route, methods=["PUT"], endpoint=endpoint)(make_handler(event))
 
 
 @app.after_request
@@ -78,6 +80,12 @@ def add_cors_headers(response):
 
 def boot():
     with FileLock(LOCK_FILE, blocking=False):
+        routes = [
+            ("/start", "vc start"),
+            ("/stop", "vc stop"),
+            ("/monitor", "vc monitor toggle"),
+        ]
+        add_event_routes(app, routes)
         socketio.run(app=app, host="127.0.0.1", port=LISTEN_PORT)
 
 
@@ -88,12 +96,8 @@ def kill():
         pass
 
 
-def start():
-    requests.put(f"{LOCAL_API}/start")
-
-
-def stop():
-    requests.put(f"{LOCAL_API}/stop")
+def event_cmd(event_endpoint: str):
+    requests.put(f"{LOCAL_API}/{event_endpoint}")
 
 
 def list(api_url: str):
@@ -117,15 +121,16 @@ def select(api_url: str, model_index: str):
 
 
 def main():
-    parser = ArgumentParser("autovc", description="Voice Changer Automatization")
+    parser = ArgumentParser("autovc", description="Voice Changer automatization")
     subparsers = parser.add_subparsers(
         dest="command", help="Command to execute, defaults to 'boot'"
     )
-    _ = subparsers.add_parser("start", help="Start the voice changer")
-    _ = subparsers.add_parser("stop", help="Stop the voice changer")
-    _ = subparsers.add_parser("list", help="List available models")
     _ = subparsers.add_parser("boot", help="Start the autovc server")
     _ = subparsers.add_parser("kill", help="Stop the autovc server")
+    _ = subparsers.add_parser("start", help="Start the voice changer")
+    _ = subparsers.add_parser("stop", help="Stop the voice changer")
+    _ = subparsers.add_parser("monitor", help="Toggle monitor")
+    _ = subparsers.add_parser("list", help="List available models")
     select_parser = subparsers.add_parser("select", help="Select a model")
     select_parser.add_argument(
         "INDEX",
@@ -136,14 +141,12 @@ def main():
         boot()
     elif args.command == "kill":
         kill()
-    elif args.command == "start":
-        start()
-    elif args.command == "stop":
-        stop()
     elif args.command == "list":
         list()
     elif args.command == "select":
         select(args.INDEX)
+    else:  # start, stop, monitor
+        event_cmd(args.command)
 
 
 if __name__ == "__main__":

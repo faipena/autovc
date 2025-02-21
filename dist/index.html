@@ -7,7 +7,7 @@
     let timer = setInterval(async () => {
       try {
         // The timestamp is needed to prevent browser caching
-        let module = await import(`http://127.0.0.1:18889/inject.js?${+ new Date()}`);
+        let module = await import(`http://127.0.0.1:18889/static/autovc.js?${+ new Date()}`);
         if(!moduleLoaded) {
           // This poor man's mutex is needed because it is possible
           // that multiple requests could be responded on the same page.

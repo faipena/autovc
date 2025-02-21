@@ -56,11 +56,6 @@ def flask_stop():
     voice_changer_started = False
     return {"started": voice_changer_started}, 200
 
-@app.route("/inject.js")
-def flask_js_agent():
-    with open("dist/inject.js", "r") as f:
-        return Response(f.read(), mimetype="text/javascript")
-
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:18888"  # Allow all origins

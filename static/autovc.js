@@ -1,3 +1,5 @@
+import {io} from "/static/socket.io/4.8.1/socket.io.esm.min.js"; 
+
 const DEBUG = false;
 let log = DEBUG ? ((...what) => console.log("[AUTOVC]", ...what)) : ((...what) => { });
 

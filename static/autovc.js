@@ -25,6 +25,17 @@ socket.on("vc monitor toggle", () => {
   }
 });
 
+socket.on("vc model select", (modelIndex) => {
+  log("vc model select", modelIndex);
+  // First, sort models by ID
+  document.querySelector("div.model-slot-sort-buttons").firstChild.click();
+  // Then click nth model
+  const model = document.querySelector("div.model-slot-tiles-container").children[modelIndex];
+  if(model && !model.classList.contains("model-slot-tile-container-selected")) {
+    model.click();
+  }
+});
+
 
 function changeState(started) {
   const buttonsParent = document.querySelector("div.character-area-control-buttons");

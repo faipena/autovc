@@ -1,4 +1,4 @@
-import {io} from "/static/socket.io/4.8.1/socket.io.esm.min.js"; 
+import { io } from "/static/socket.io/4.8.1/socket.io.esm.min.js";
 
 const socket = io("127.0.0.1:18889");
 const MONITOR_DEVICE = "default";
@@ -18,7 +18,7 @@ socket.on("vc stop", () => {
 socket.on("vc monitor toggle", () => {
   log("vc monitor toggle");
   const monitorSelect = document.querySelectorAll("div.config-sub-area-control-field select")[6];
-  if(monitorSelect.value === "none") {
+  if (monitorSelect.value === "none") {
     monitorSelect.value = MONITOR_DEVICE;
   } else {
     monitorSelect.value = "none";
@@ -31,10 +31,25 @@ socket.on("vc model select", (modelIndex) => {
   document.querySelector("div.model-slot-sort-buttons").firstChild.click();
   // Then click nth model
   const model = document.querySelector("div.model-slot-tiles-container").children[modelIndex];
-  if(model && !model.classList.contains("model-slot-tile-container-selected")) {
+  if (model && !model.classList.contains("model-slot-tile-container-selected")) {
     model.click();
   }
 });
+
+socket.on("vc tune", (direction) => {
+  log("vc tune", direction);
+  const tuneSlider = document.querySelectorAll("span.character-area-slider-control-slider input")[2];
+  if (direction === "up") {
+    tuneSlider.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'ArrowRight', // Key name
+      code: 'ArrowRight', // Physical key on the keyboard
+      bubbles: true, // Event bubbles through the DOM
+      cancelable: true // Event can be canceled
+    }));
+  } else if (direction === "down") {
+
+  }
+})
 
 
 function changeState(started) {

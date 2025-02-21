@@ -9,6 +9,9 @@ import sys
 from tabulate import tabulate
 import time
 
+VC_API = "http://127.0.0.1:18888"
+LISTEN_PORT = 18889
+
 # Classes and functions
 
 def abort(message: str):
@@ -32,9 +35,9 @@ def get_info(url: str):
 
 # Flask server
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:18888")
+socketio = SocketIO(app, cors_allowed_origins=VC_API)
 
-def start_server(started: bool, port: int):
+def start_server(port: int):
     socketio.run(app=app, host="127.0.0.1", port=port)
 
 @app.route("/start", methods=["PUT"])
@@ -49,7 +52,7 @@ def flask_stop():
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:18888"
+    response.headers["Access-Control-Allow-Origin"] = VC_API
     response.headers["Access-Control-Allow-Methods"] = "GET"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
@@ -62,16 +65,16 @@ def list(api_url: str):
 
 def start(port: int):
     try:
-        requests.put(f"http://127.0.0.1:{port}/start")
+        requests.put(f"{VC_API}/start")
     except requests.exceptions.ConnectionError:
-        start_server(True, port)
+        start_server(port)
 
 
 def stop(port: int):
     try:
-        requests.put(f"http://127.0.0.1:{port}/stop")
+        requests.put(f"{VC_API}/stop")
     except requests.exceptions.ConnectionError:
-        start_server(False, port)
+        start_server(port)
 
 def select(api_url: str, model_index: str):
     try:
@@ -82,12 +85,10 @@ def select(api_url: str, model_index: str):
     requests.post(f"{api_url}/update_settings", files={
         "key": (None,"modelSlotIndex"),
         "val": (None,f"{int(time.time())}{model_index}")
-        })
+    })
 
 def main():
-    parser = ArgumentParser(__name__, description="Voice Changer Automatization")
-    parser.add_argument("--api-url", default="http://127.0.0.1:18888", help="URL for the rest API interface of voice changer")
-    parser.add_argument("--port", default=18889, type=int, help="Port where autovc should listen when run in server mode")
+    parser = ArgumentParser("autovc", description="Voice Changer Automatization")
     subparsers = parser.add_subparsers(dest="command", help="Command to execute", required=True)
     _ = subparsers.add_parser("start", help="Start the voice changer")
     _ = subparsers.add_parser("stop", help="Stop the voice changer")
@@ -95,16 +96,14 @@ def main():
     select_parser = subparsers.add_parser("select", help="Select a model")
     select_parser.add_argument("INDEX", help="Model index to select, use 'list' command to get model names and indexes")
     args = parser.parse_args()
-    if args.port > 2**16-1 or args.port < 0:
-        abort(f"Invalid port value, must be between 0 and {2**16-1}")
     if args.command == "list":
-        list(args.api_url)
+        list()
     elif args.command == "start":
-        start(args.port)
+        start(LISTEN_PORT)
     elif args.command == "stop":
-        stop(args.port)
+        stop(LISTEN_PORT)
     elif args.command == "select":
-        select(args.api_url, args.INDEX)
+        select(args.INDEX)
 
 if __name__ == "__main__":
     main()

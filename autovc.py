@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 # author: faipena
 from argparse import ArgumentParser
-from flask import Flask
+from flask import Flask, request
 from flask_socketio import SocketIO
+from filelock import FileLock
 import requests
 from dataclasses import dataclass
 import sys
+import os
 from tabulate import tabulate
 import time
 
-VC_API = "http://127.0.0.1:18888"
 LISTEN_PORT = 18889
 LOCAL_API = f"http://127.0.0.1:{LISTEN_PORT}"
+VC_API = "http://127.0.0.1:18888"
+LOCK_FILE = "autovc_server.lock"
 
 # Classes and functions
 
@@ -45,6 +48,11 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins=VC_API)
 
 
+@app.route("/kill", methods=["PUT"])
+def flask_kill():
+    os._exit(0)
+
+
 @app.route("/start", methods=["PUT"])
 def flask_start():
     socketio.emit("vc start")
@@ -68,21 +76,29 @@ def add_cors_headers(response):
 # Commands
 
 
-def start_server():
-    socketio.run(app=app, host="127.0.0.1", port=LISTEN_PORT)
+def boot():
+    with FileLock(LOCK_FILE, blocking=False):
+        socketio.run(app=app, host="127.0.0.1", port=LISTEN_PORT)
 
 
-def list(api_url: str):
-    models = get_info(api_url)
-    print(tabulate(models, headers=["Index", "Name"]))
+def kill():
+    try:
+        requests.put(f"{LOCAL_API}/kill")
+    except:
+        pass
 
 
 def start():
     requests.put(f"{LOCAL_API}/start")
 
 
-def stop(port: int):
+def stop():
     requests.put(f"{LOCAL_API}/stop")
+
+
+def list(api_url: str):
+    models = get_info(api_url)
+    print(tabulate(models, headers=["Index", "Name"]))
 
 
 def select(api_url: str, model_index: str):
@@ -103,27 +119,29 @@ def select(api_url: str, model_index: str):
 def main():
     parser = ArgumentParser("autovc", description="Voice Changer Automatization")
     subparsers = parser.add_subparsers(
-        dest="command", help="Command to execute, defaults to 'startserver'"
+        dest="command", help="Command to execute, defaults to 'boot'"
     )
     _ = subparsers.add_parser("start", help="Start the voice changer")
     _ = subparsers.add_parser("stop", help="Stop the voice changer")
     _ = subparsers.add_parser("list", help="List available models")
-    _ = subparsers.add_parser("startserver", help="Start the autovc server")
-    _ = subparsers.add_parser("stopserver", help="Stop the autovc server")
+    _ = subparsers.add_parser("boot", help="Start the autovc server")
+    _ = subparsers.add_parser("kill", help="Stop the autovc server")
     select_parser = subparsers.add_parser("select", help="Select a model")
     select_parser.add_argument(
         "INDEX",
         help="Model index to select, use 'list' command to get model names and indexes",
     )
     args = parser.parse_args()
-    if args.command in [None, "startserver"]:
-        start_server()
-    elif args.command == "list":
-        list()
+    if args.command in [None, "boot"]:
+        boot()
+    elif args.command == "kill":
+        kill()
     elif args.command == "start":
         start()
     elif args.command == "stop":
         stop()
+    elif args.command == "list":
+        list()
     elif args.command == "select":
         select(args.INDEX)
 

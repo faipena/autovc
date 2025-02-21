@@ -2,3 +2,4 @@ tabulate
 Flask
 requests
 flask-socketio
+filelock

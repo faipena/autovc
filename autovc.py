@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # author: faipena
 from argparse import ArgumentParser
+from flask import Flask
+from flask_socketio import SocketIO
 import requests
 from dataclasses import dataclass
 import sys
 from tabulate import tabulate
-from flask import Flask, Response
 import time
 
 # Classes and functions
@@ -30,31 +31,21 @@ def get_info(url: str):
     return models
 
 # Flask server
-
-voice_changer_started = False
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:18888")
 
 def start_server(started: bool, port: int):
-    global voice_changer_started
-    voice_changer_started = started
-    app.run(host="127.0.0.1", port=port)
-
-@app.route("/")
-def flask_index():
-    global voice_changer_started
-    return {"started": voice_changer_started}, 200
+    socketio.run(app=app, host="127.0.0.1", port=port)
 
 @app.route("/start")
 def flask_start():
-    global voice_changer_started
-    voice_changer_started = True
-    return {"started": voice_changer_started}, 200
+    socketio.emit("vc start")
+    return {"started": True}, 200
 
 @app.route("/stop")
 def flask_stop():
-    global voice_changer_started
-    voice_changer_started = False
-    return {"started": voice_changer_started}, 200
+    socketio.emit("vc stop")
+    return {"started": False}, 200
 
 @app.after_request
 def add_cors_headers(response):

@@ -1,40 +1,34 @@
 import {io} from "/static/socket.io/4.8.1/socket.io.esm.min.js"; 
 
-const DEBUG = false;
+const socket = io("127.0.0.1:18889");
+
+const DEBUG = true;
 let log = DEBUG ? ((...what) => console.log("[AUTOVC]", ...what)) : ((...what) => { });
 
-function inject() {
+socket.on("vc start", () => {
+  log("on vc start!");
+  changeState(true);
+});
+
+socket.on("vc stop", () => {
+  log("on vc stop!");
+  changeState(false);
+});
+
+
+function changeState(started) {
   const buttonsParent = document.querySelector("div.character-area-control-buttons");
+  if (!buttonsParent || buttonsParent.childElementCount < 2) {
+    return;
+  }
   const startButton = buttonsParent.children[0];
   const stopButton = buttonsParent.children[1];
-
-  setInterval(() => {
-    const isClientStarted = startButton.classList.contains("character-area-control-button-active");
-    fetch("http://127.0.0.1:18889").then(response => response.json())
-      .then(data => {
-        log(data);
-        const isServerStarted = data.started === true;
-        if (isClientStarted == isServerStarted) {
-          return;
-        }
-        if (isServerStarted) {
-          startButton.click();
-        } else {
-          stopButton.click();
-        }
-      })
-      .catch(error => log("Cannot fetch autovc request: ", error))
-  }, 250);
-}
-
-export function init() {
-  log("Let go!");
-  let timer = setInterval(() => {
-    const buttonsParent = document.querySelector("div.character-area-control-buttons");
-    if (buttonsParent !== undefined) {
-      log("Buttons found, injecting!");
-      clearInterval(timer);
-      setTimeout(inject, 100);
-    }
-  }, 500);
+  if (!(startButton && stopButton)) {
+    return;
+  }
+  if (started) {
+    startButton.click();
+  } else {
+    stopButton.click();
+  }
 }

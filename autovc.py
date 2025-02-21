@@ -11,6 +11,7 @@ import time
 
 VC_API = "http://127.0.0.1:18888"
 LISTEN_PORT = 18889
+LOCAL_API = f"http://127.0.0.1:{LISTEN_PORT}"
 
 # Classes and functions
 
@@ -44,10 +45,6 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins=VC_API)
 
 
-def start_server(port: int):
-    socketio.run(app=app, host="127.0.0.1", port=port)
-
-
 @app.route("/start", methods=["PUT"])
 def flask_start():
     socketio.emit("vc start")
@@ -71,23 +68,21 @@ def add_cors_headers(response):
 # Commands
 
 
+def start_server():
+    socketio.run(app=app, host="127.0.0.1", port=LISTEN_PORT)
+
+
 def list(api_url: str):
     models = get_info(api_url)
     print(tabulate(models, headers=["Index", "Name"]))
 
 
-def start(port: int):
-    try:
-        requests.put(f"{VC_API}/start")
-    except requests.exceptions.ConnectionError:
-        start_server(port)
+def start():
+    requests.put(f"{LOCAL_API}/start")
 
 
 def stop(port: int):
-    try:
-        requests.put(f"{VC_API}/stop")
-    except requests.exceptions.ConnectionError:
-        start_server(port)
+    requests.put(f"{LOCAL_API}/stop")
 
 
 def select(api_url: str, model_index: str):
@@ -108,23 +103,27 @@ def select(api_url: str, model_index: str):
 def main():
     parser = ArgumentParser("autovc", description="Voice Changer Automatization")
     subparsers = parser.add_subparsers(
-        dest="command", help="Command to execute", required=True
+        dest="command", help="Command to execute, defaults to 'startserver'"
     )
     _ = subparsers.add_parser("start", help="Start the voice changer")
     _ = subparsers.add_parser("stop", help="Stop the voice changer")
     _ = subparsers.add_parser("list", help="List available models")
+    _ = subparsers.add_parser("startserver", help="Start the autovc server")
+    _ = subparsers.add_parser("stopserver", help="Stop the autovc server")
     select_parser = subparsers.add_parser("select", help="Select a model")
     select_parser.add_argument(
         "INDEX",
         help="Model index to select, use 'list' command to get model names and indexes",
     )
     args = parser.parse_args()
-    if args.command == "list":
+    if args.command in [None, "startserver"]:
+        start_server()
+    elif args.command == "list":
         list()
     elif args.command == "start":
-        start(LISTEN_PORT)
+        start()
     elif args.command == "stop":
-        stop(LISTEN_PORT)
+        stop()
     elif args.command == "select":
         select(args.INDEX)
 

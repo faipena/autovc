@@ -37,19 +37,19 @@ socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:18888")
 def start_server(started: bool, port: int):
     socketio.run(app=app, host="127.0.0.1", port=port)
 
-@app.route("/start")
+@app.route("/start", methods=["PUT"])
 def flask_start():
     socketio.emit("vc start")
     return {"started": True}, 200
 
-@app.route("/stop")
+@app.route("/stop", methods=["PUT"])
 def flask_stop():
     socketio.emit("vc stop")
     return {"started": False}, 200
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:18888"  # Allow all origins
+    response.headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:18888"
     response.headers["Access-Control-Allow-Methods"] = "GET"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
@@ -62,14 +62,14 @@ def list(api_url: str):
 
 def start(port: int):
     try:
-        requests.get(f"http://127.0.0.1:{port}/start")
+        requests.put(f"http://127.0.0.1:{port}/start")
     except requests.exceptions.ConnectionError:
         start_server(True, port)
 
 
 def stop(port: int):
     try:
-        requests.get(f"http://127.0.0.1:{port}/stop")
+        requests.put(f"http://127.0.0.1:{port}/stop")
     except requests.exceptions.ConnectionError:
         start_server(False, port)
 

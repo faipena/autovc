@@ -1,4 +1,3 @@
-tabulate
 Flask
 requests
 flask-socketio

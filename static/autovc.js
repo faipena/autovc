@@ -7,12 +7,12 @@ let log = DEBUG ? ((...what) => console.log("[AUTOVC]", ...what)) : ((...what) =
 
 socket.on("vc start", () => {
   log("vc start");
-  changeState(true);
+  changeVCState(true);
 });
 
 socket.on("vc stop", () => {
   log("vc stop");
-  changeState(false);
+  changeVCState(false);
 });
 
 socket.on("vc monitor toggle", () => {
@@ -39,24 +39,36 @@ socket.on("vc model select", (modelIndex) => {
 socket.on("vc tune", (direction) => {
   log("vc tune", direction);
   const tuneSlider = document.querySelectorAll("span.character-area-slider-control-slider input")[2];
+
   if (direction === "up") {
-    tuneSlider.dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'ArrowRight', // Key name
-      code: 'ArrowRight', // Physical key on the keyboard
-      bubbles: true, // Event bubbles through the DOM
-      cancelable: true // Event can be canceled
-    }));
+
   } else if (direction === "down") {
 
   }
 })
 
-
-function changeState(started) {
+function changeVCState(started) {
   const buttonsParent = document.querySelector("div.character-area-control-buttons");
   if (started) {
     buttonsParent.children[0].click();
   } else {
     buttonsParent.children[1].click();
   }
+}
+
+function simulateReactClick(element) {
+  element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+}
+
+export function init() {
+  setTimeout(() => {
+    const buttons = Array.from(document.querySelectorAll("div.body-button"));
+    const startButton = buttons.filter((el) => el.textContent == "start")[0];
+    if (startButton !== undefined) {
+      log("Clicking start button");
+      simulateReactClick(startButton);
+    }
+  }, 750);
 }

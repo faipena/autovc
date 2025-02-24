@@ -23,24 +23,42 @@ def flask_kill():
     os._exit(0)
 
 
-def add_event_routes(app, routes):
-    for route, event in routes:
+@app.route("/start", methods=["PUT"])
+def flask_start():
+    socketio.emit("vc start")
+    return ""
 
-        def make_handler(event):
-            def handler():
-                socketio.emit(event)
-                return ""
 
-            return handler
+@app.route("/stop", methods=["PUT"])
+def flask_stop():
+    socketio.emit("vc stop")
+    return ""
 
-        endpoint = f"handle_event{route.replace('/', '_').strip('_')}"
-        app.route(route, methods=["PUT"], endpoint=endpoint)(make_handler(event))
+
+@app.route("/monitor", methods=["PUT"])
+def flask_monitor():
+    socketio.emit("vc monitor toggle")
+    return ""
 
 
 @app.route("/select", methods=["PUT"])
 def flask_select():
     data = request.json
     socketio.emit("vc model select", data["model_index"])
+    return ""
+
+
+@app.route("/tune/slide", methods=["PUT"])
+def flask_tune_slide():
+    data = request.json
+    socketio.emit("vc tune slide", data["direction"])
+    return ""
+
+
+@app.route("/tune", methods=["POST"])
+def flask_tune():
+    data = request.json
+    socketio.emit("vc tune set", data["level"])
     return ""
 
 
@@ -57,12 +75,6 @@ def add_cors_headers(response):
 
 def boot():
     with FileLock(LOCK_FILE, blocking=False):
-        routes = [
-            ("/start", "vc start"),
-            ("/stop", "vc stop"),
-            ("/monitor", "vc monitor toggle"),
-        ]
-        add_event_routes(app, routes)
         socketio.run(app=app, host="127.0.0.1", port=LISTEN_PORT)
 
 
@@ -81,6 +93,13 @@ def select(model_index: int):
     requests.put(f"{LOCAL_API}/select", json={"model_index": model_index})
 
 
+def tune(tune_value: str):
+    if tune_value in ["up", "down"]:
+        requests.put(f"{LOCAL_API}/tune/slide", json={"direction": tune_value})
+    else:
+        requests.post(f"{LOCAL_API}/tune", json={"level": tune_value})
+
+
 def main():
     parser = ArgumentParser("autovc", description="Voice Changer automatization")
     subparsers = parser.add_subparsers(
@@ -95,6 +114,13 @@ def main():
     select_parser.add_argument(
         "INDEX", help="Model index to select (alphabetic sort)", type=int
     )
+    tune_parser = subparsers.add_parser("tune", help="Interact with the tune slider")
+    tune_parser.add_argument(
+        "TUNE",
+        help="The direction to slide the tune (up/down) or the tune value (an integer between -50 and 50).",
+        choices=["up", "down", *(f"{i}" for i in range(-50, 51))],
+        metavar="DIRECTION_OR_VALUE",
+    )
     args = parser.parse_args()
     if args.command in [None, "boot"]:
         boot()
@@ -102,6 +128,8 @@ def main():
         kill()
     elif args.command == "select":
         select(args.INDEX)
+    elif args.command == "tune":
+        tune(args.TUNE)
     else:  # start, stop, monitor
         event_cmd(args.command)
 

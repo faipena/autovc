@@ -33,7 +33,8 @@ function setTune(tuneSlider, value) {
     (!isNaN(value)) &&
     (tuneSlider.max === undefined || tuneSlider.max >= +value) &&
     (tuneSlider.min === undefined || tuneSlider.min <= +value)) {
-    simulateReactSetInputValue(tuneSlider, +value);
+    log(`Setting tune value to: ${value}`)
+    simulateReactSetInputValue(tuneSlider, value);
   }
 }
 
